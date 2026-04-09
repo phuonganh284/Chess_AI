@@ -42,8 +42,18 @@ def evaluate(board):
         whiteScore += len(board.pieces(piece, chess.WHITE))*value
         blackScore += len(board.pieces(piece, chess.BLACK))*value
 
+    # Piece value calculation
     score = whiteScore - blackScore
-    score += 0.1*len(list(board.legal_moves))
+    
+    # Mobility calculation
+    temp = board.copy()
+    temp.turn = chess.WHITE
+    whiteMobility = len(list(temp.legal_moves))
+    temp.turn = chess.BLACK
+    blackMobility = len(list(temp.legal_moves))
+
+    score += 0.01 * (whiteMobility - blackMobility)
+
 
     # if board.is_check():
     #     if board.turn == chess.BLACK:
