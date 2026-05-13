@@ -6,7 +6,7 @@ import tkinter.messagebox as messagebox
 
 SQ_SIZE = 20
 AI_DELAY = 800  # ms
-MINIMAX_DEPTH = 3
+MINIMAX_DEPTH = 2
 
 # white first, black second
 # random vs minimax: white -> random moves first, black -> random moves second 
@@ -41,6 +41,9 @@ class ChessUI:
             ("3. Player vs Minimax AI", "pvm"),
             ("4. Random vs Minimax", "rvm"),
             ("5. Minimax vs Minimax", "mvm"),
+            ("6. Player vs Machine Learning", "pml"),
+            ("7. Random vs Machine Learning", "rml"),
+            ("8. Minimax vs Machine Learning", "mml"),
         ]
 
         for text, mode in modes:
@@ -128,14 +131,14 @@ class ChessUI:
         turn = self.game_state.board.turn == CHESS_TURN
 
         # block player input in AI vs AI
-        if self.mode == "mvm":
-            return
-        if self.mode == "rvm":
+        if self.mode in ("mvm", "rvm", "rml", "mml"):
             return
         # block player when it's AI turn
         if self.mode == "pvr" and not turn:
             return
         if self.mode == "pvm" and not turn:
+            return
+        if self.mode == "pml" and not turn:
             return
 
         if self.selected is None:
@@ -174,12 +177,28 @@ class ChessUI:
             ai_type = "random" if turn else "minimax"
         elif self.mode == "mvm":
             ai_type = "minimax"
+        elif self.mode == "pml":
+            ai_type = "ml" if not turn else None
+        elif self.mode == "rml":
+            ai_type = "random" if turn else "ml"
+        elif self.mode == "mml":
+            ai_type = "minimax" if turn else "ml"
 
         if ai_type:
+            mv = None
             if ai_type == "random":
                 mv = solver.random_move(self.game_state.board)
-            else:
+            elif ai_type == "minimax":
+                prev_use = getattr(solver, 'USE_ML', True)
+                solver.USE_ML = False
                 mv = solver.find_best_move(self.game_state.board, MINIMAX_DEPTH)
+                solver.USE_ML = prev_use
+            elif ai_type == "ml":
+                prev_use = getattr(solver, 'USE_ML', True)
+                solver.USE_ML = True
+                mv = solver.find_best_move(self.game_state.board, MINIMAX_DEPTH)
+                solver.USE_ML = prev_use
+
             if mv:
                 self.game_state.apply_move_obj(mv)
                 print(f"AI ({ai_type}):", mv.uci())

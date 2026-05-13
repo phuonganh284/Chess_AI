@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 
 print("Loading dataset...")
 
-df = pd.read_csv("chess_dataset.csv")
+df = pd.read_csv("chess_dataset_v2.csv")
 
 X = df.drop("score", axis=1)
 y = df["score"]
@@ -30,14 +30,15 @@ X_test = scaler.transform(X_test)
 
 print("Creating model...")
 model = MLPRegressor(
-    hidden_layer_sizes=(128, 64),
+    hidden_layer_sizes=(256, 128, 64), 
     activation='relu',
     solver='adam',
-    max_iter=200,
+    max_iter=1000,                     
+    learning_rate_init=0.001,          
+    early_stopping=True,               
     random_state=42,
     verbose=True
 )
-
 
 print("Training model...")
 model.fit(X_train, y_train)
