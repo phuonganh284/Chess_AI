@@ -21,8 +21,6 @@ pieceScore = {
     chess.QUEEN: 9,
     chess.KING: 0
 }
-
-
 # white -> maximize
 # black -> minimize
 def evaluate(board):
@@ -33,10 +31,8 @@ def evaluate(board):
             return 9999
     if board.is_stalemate():
         return 0
-    
     whiteScore = 0
     blackScore = 0
-
     for piece in pieceScore:
         value = pieceScore[piece]
         whiteScore += len(board.pieces(piece, chess.WHITE))*value
@@ -44,7 +40,6 @@ def evaluate(board):
 
     # Piece value calculation
     score = whiteScore - blackScore
-    
     # Mobility calculation
     temp = board.copy()
     temp.turn = chess.WHITE
@@ -53,14 +48,6 @@ def evaluate(board):
     blackMobility = len(list(temp.legal_moves))
 
     score += 0.01 * (whiteMobility - blackMobility)
-
-
-    # if board.is_check():
-    #     if board.turn == chess.BLACK:
-    #         score += 0.1
-    #     else:
-    #         score -= 0.1
-
     return score
 
 
@@ -69,7 +56,6 @@ def minimax(board, depth, alpha, beta, maximizingPlayer):
     if board.is_game_over() or depth == 0:
         return evaluate(board)
     moves = list(board.legal_moves)
-
     # white turn (maximize)
     if maximizingPlayer:
         maxEval = -math.inf
@@ -85,7 +71,6 @@ def minimax(board, depth, alpha, beta, maximizingPlayer):
             if maximizingPlayer and maxEval == 9999:
                 break
         return maxEval
-        
     # black turn (minimize)
     else:
         minEval = math.inf
