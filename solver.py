@@ -1,8 +1,18 @@
 import random
 import chess
 import math
-import ChessEngine
+import pickle
+import numpy as np
+import DataClean
+import pandas as pd
 
+with open("chess_model.pkl", "rb") as f:
+    ml_model = pickle.load(f)
+
+with open("scaler.pkl", "rb") as f:
+    scaler = pickle.load(f)
+
+USE_ML = True
 
 # Random move agent ----------------------------------------------------
 def random_move(board):
@@ -12,7 +22,7 @@ def random_move(board):
     return random.choice(moves)
 
 
-# Minimax alpha-beta pruning agent -------------------------------------
+# Simple evaluation -------------------------------------
 pieceScore = {
     chess.PAWN: 1,
     chess.KNIGHT: 3,
@@ -50,11 +60,36 @@ def evaluate(board):
     score += 0.01 * (whiteMobility - blackMobility)
     return score
 
+# ML evaluation -------------------------------------
+eval_cache = {}
 
+def ml_evaluate(board):
+    if board.is_checkmate():
+        return -9999 if board.turn else 9999
+    if board.is_stalemate():
+        return 0
+
+    fen = board.fen()
+    if fen in eval_cache:
+        return eval_cache[fen]
+
+    vec = DataClean.board_to_vector(board)
+    vec = np.array(vec, dtype=np.float32).reshape(1, -1)
+    vec_scaled = scaler.transform(vec)
+    pred = ml_model.predict(vec_scaled)[0]
+
+    eval_cache[fen] = pred
+
+    return pred
+
+# Minimax -------------------------------------
 def minimax(board, depth, alpha, beta, maximizingPlayer):
     # base case
     if board.is_game_over() or depth == 0:
-        return evaluate(board)
+        if USE_ML:
+            return ml_evaluate(board)
+        else:
+            return evaluate(board)
     moves = list(board.legal_moves)
     # white turn (maximize)
     if maximizingPlayer:
@@ -111,5 +146,7 @@ def find_best_move(board, depth):
                 best_move = move
 
     return best_move
+
+
 
 

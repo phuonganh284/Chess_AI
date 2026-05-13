@@ -1,73 +1,97 @@
 import pandas as pd
 import chess
 
-piece_map = {
-    'P': 1,
-    'N': 2,
-    'B': 3,
-    'R': 4,
-    'Q': 5,
-    'K': 6,
-    'p': -1,
-    'n': -2,
-    'b': -3,
-    'r': -4,
-    'q': -5,
-    'k': -6
+
+piece_to_index = {
+    'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
+    'p': 6, 'n': 7, 'b': 8, 'r': 9, 'q': 10, 'k': 11
 }
 
 
+def get_column_names():
+    columns = []
+    piece_symbols = ['P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']
+    
+    # 768 cột cho 64 ô cờ (64 * 12)
+    for i in range(64):
+        for p in piece_symbols:
+            columns.append(f"sq{i}_{p}")
+            
+    # 5 cột Meta-data
+    columns.extend([
+        "turn_white",
+        "white_kingside_castle",
+        "white_queenside_castle",
+        "black_kingside_castle",
+        "black_queenside_castle"
+    ])
+    return columns
+
 def board_to_vector(board):
     vector = []
+    
     for square in chess.SQUARES:
+        square_vector = [0] * 12 
         piece = board.piece_at(square)
-        if piece is None:
-            vector.append(0)
-        else:
-            vector.append(piece_map[piece.symbol()])
+        if piece is not None:
+            idx = piece_to_index[piece.symbol()]
+            square_vector[idx] = 1 
+        vector.extend(square_vector)
+        
+    vector.append(1 if board.turn == chess.WHITE else 0)
+    
+    vector.append(1 if board.has_kingside_castling_rights(chess.WHITE) else 0)
+    vector.append(1 if board.has_queenside_castling_rights(chess.WHITE) else 0)
+    vector.append(1 if board.has_kingside_castling_rights(chess.BLACK) else 0)
+    vector.append(1 if board.has_queenside_castling_rights(chess.BLACK) else 0)
+    
     return vector
 
-
-# clean dataset
 def clean_dataset(input_csv, output_csv):
+    print("Reading original dataset...")
     df = pd.read_csv(input_csv)
+    
     X = []
     y = []
     total = len(df)
+    
+    print("Processing FENs to Vectors...")
     for index, row in df.iterrows():
         try:
             fen = row["FEN"]
             score = row["Analysis"]
-            if isinstance(score, str):
+            
+            if isinstance(score, str) and not score.replace('.', '', 1).lstrip('-').isdigit():
                 continue
-            # convert centipawn -> pawn
+                
             score = float(score) / 100.0
-            # create board from FEN
+            score = max(-15.0, min(15.0, score))
+            
             board = chess.Board(fen)
-            # convert board -> vector
+            
             vector = board_to_vector(board)
+            
             X.append(vector)
             y.append(score)
-            if (index + 1) % 1000 == 0:
+            
+            if (index + 1) % 5000 == 0:
                 print(f"Processed {index + 1}/{total}")
+                
         except Exception as e:
-            print("Skipped row:", e)
+            print(f"Skipped row {index}: {e}")
 
-    columns = []
-
-    for i in range(64):
-        columns.append(f"square_{i}")
-
+    print("Building Dataframe...")
+    columns = get_column_names()
     cleaned_df = pd.DataFrame(X, columns=columns)
     cleaned_df["score"] = y
 
+    print("Saving to CSV...")
     cleaned_df.to_csv(output_csv, index=False)
-    print("Saved cleaned dataset to:", output_csv)
-
+    print(f"Saved cleaned dataset to: {output_csv}")
+    print(f"Dataset shape: {cleaned_df.shape} (Rows, Columns)")
 
 if __name__ == "__main__":
-
     clean_dataset(
         "fen_analysis.csv",
-        "chess_dataset.csv"
+        "chess_dataset_v2.csv"
     )
