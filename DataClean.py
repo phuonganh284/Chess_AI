@@ -65,7 +65,6 @@ def clean_dataset(input_csv, output_csv):
                 continue
                 
             score = float(score) / 100.0
-            score = max(-15.0, min(15.0, score))
             
             board = chess.Board(fen)
             

@@ -7,6 +7,7 @@ import tkinter.messagebox as messagebox
 SQ_SIZE = 20
 AI_DELAY = 800  # ms
 MINIMAX_DEPTH = 2
+MML_DEPTH = 2
 
 # white first, black second
 # random vs minimax: white -> random moves first, black -> random moves second 
@@ -159,6 +160,7 @@ class ChessUI:
         messagebox.showinfo("Game Over", result)
 
     # AI turn
+    # AI turn
     def ai_loop(self):
         if self.game_state.is_game_over():
             self.show_game_over()
@@ -166,38 +168,43 @@ class ChessUI:
 
         turn = self.game_state.board.turn == CHESS_TURN
         ai_type = None
+        search_depth = MINIMAX_DEPTH
 
         if self.mode == "pvp":
             ai_type = None
         elif self.mode == "pvr":
+            # Player vs Random
             ai_type = "random" if not turn else None
         elif self.mode == "pvm":
+            # Player vs Minimax
             ai_type = "minimax" if not turn else None
         elif self.mode == "rvm":
+            # Random vs Minimax: White=Random, Black=Minimax
             ai_type = "random" if turn else "minimax"
         elif self.mode == "mvm":
+            # Minimax vs Minimax
             ai_type = "minimax"
         elif self.mode == "pml":
+            # Player vs ML: Black uses ML
             ai_type = "ml" if not turn else None
         elif self.mode == "rml":
+            # Random vs ML: White=Random, Black=ML
             ai_type = "random" if turn else "ml"
         elif self.mode == "mml":
+            # Minimax vs ML: White=Minimax, Black=ML
             ai_type = "minimax" if turn else "ml"
+            search_depth = MML_DEPTH
 
         if ai_type:
             mv = None
             if ai_type == "random":
                 mv = solver.random_move(self.game_state.board)
             elif ai_type == "minimax":
-                prev_use = getattr(solver, 'USE_ML', True)
-                solver.USE_ML = False
-                mv = solver.find_best_move(self.game_state.board, MINIMAX_DEPTH)
-                solver.USE_ML = prev_use
+                # Use Minimax with heuristic evaluation (no ML)
+                mv = solver.find_best_move(self.game_state.board, search_depth, use_ml_eval=False)
             elif ai_type == "ml":
-                prev_use = getattr(solver, 'USE_ML', True)
-                solver.USE_ML = True
-                mv = solver.find_best_move(self.game_state.board, MINIMAX_DEPTH)
-                solver.USE_ML = prev_use
+                # Use Minimax with ML evaluation
+                mv = solver.find_best_move(self.game_state.board, search_depth, use_ml_eval=True)
 
             if mv:
                 self.game_state.apply_move_obj(mv)
