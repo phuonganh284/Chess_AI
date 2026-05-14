@@ -1,13 +1,15 @@
 import tkinter as tk
 import ChessEngine
-import solver
+import ml_chess_engine
 import chess
+import random
 import tkinter.messagebox as messagebox
 
 SQ_SIZE = 20
 AI_DELAY = 800  # ms
 MINIMAX_DEPTH = 2
 MML_DEPTH = 2
+ML_SIMULATIONS = 120
 
 # white first, black second
 # random vs minimax: white -> random moves first, black -> random moves second 
@@ -17,6 +19,24 @@ PIECE_UNICODE = {
     'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
     'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟',
 }
+
+_minimax_solver = None
+
+
+def minimax_solver():
+    global _minimax_solver
+    if _minimax_solver is None:
+        import solver
+        _minimax_solver = solver
+    return _minimax_solver
+
+
+def random_move(board):
+    moves = list(board.legal_moves)
+    if len(moves) == 0:
+        return None
+    return random.choice(moves)
+
 
 class ChessUI:
     def __init__(self, root):
@@ -198,13 +218,17 @@ class ChessUI:
         if ai_type:
             mv = None
             if ai_type == "random":
-                mv = solver.random_move(self.game_state.board)
+                mv = random_move(self.game_state.board)
             elif ai_type == "minimax":
                 # Use Minimax with heuristic evaluation (no ML)
-                mv = solver.find_best_move(self.game_state.board, search_depth, use_ml_eval=False)
+                mv = minimax_solver().find_best_move(
+                    self.game_state.board,
+                    search_depth,
+                    use_ml_eval=False,
+                )
             elif ai_type == "ml":
-                # Use Minimax with ML evaluation
-                mv = solver.find_best_move(self.game_state.board, search_depth, use_ml_eval=True)
+                # Use the standalone neural chess engine instead of solver's MLPRegressor evaluator.
+                mv = ml_chess_engine.find_best_move(self.game_state.board, simulations=ML_SIMULATIONS)
 
             if mv:
                 self.game_state.apply_move_obj(mv)
